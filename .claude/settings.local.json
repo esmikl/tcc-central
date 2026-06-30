@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python *)",
+      "Bash(.venv/bin/python manage.py runserver 8001)",
+      "Bash(curl -s http://localhost:8001/api/me)",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s -X POST http://localhost:8001/api/register -H 'Content-Type: application/json' -d '{\"username\":\"testuser\",\"display_name\":\"Test User\",\"password\":\"testpass123\"}')",
+      "Bash(curl -s http://localhost:8001/api/boards/)"
+    ]
+  }
+}

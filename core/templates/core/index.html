@@ -1,0 +1,869 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>TCC-Central</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+  <script src="https://www.youtube.com/iframe_api" defer></script>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-bg"></div>
+
+    <!-- Sign In Card -->
+    <div class="login-card" id="loginCard">
+      <div class="login-logo">
+        <div class="login-symbol">&#9398;</div>
+        <h1>TCC-Central</h1>
+        <p class="login-tagline">No gods. No masters. No algorithms.</p>
+      </div>
+
+      <form class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="loginUsername">Username</label>
+          <input type="text" id="loginUsername" placeholder="Your handle" required autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password</label>
+          <input type="password" id="loginPassword" placeholder="Enter your password" required autocomplete="current-password">
+        </div>
+        <span class="field-error auth-error" id="loginError"></span>
+        <button type="submit" class="login-btn" id="loginBtn">Sign In</button>
+      </form>
+
+      <div class="login-divider">
+        <span>or</span>
+      </div>
+
+      <button class="guest-btn" id="guestBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Lurk as Guest
+      </button>
+      <p class="guest-hint">Read everything. You just can't post, chat, or interact.</p>
+
+      <div class="login-footer">
+        <a href="#">Forgot password?</a>
+        <span class="login-sep">&middot;</span>
+        <a href="#" id="showSignup">Create account</a>
+      </div>
+    </div>
+
+    <!-- Create Account Card -->
+    <div class="login-card signup-card" id="signupCard">
+      <div class="login-logo">
+        <div class="login-symbol">&#9398;</div>
+        <h1>TCC-Central</h1>
+        <p class="login-tagline">Join the collective</p>
+      </div>
+
+      <form class="login-form" id="signupForm">
+        <div class="form-group">
+          <label for="signupName">Display Name</label>
+          <input type="text" id="signupName" placeholder="What should we call you?" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="signupUsername">Username</label>
+          <div class="input-prefix-wrap">
+            <span class="input-prefix">@</span>
+            <input type="text" id="signupUsername" placeholder="pick a handle" required autocomplete="username" pattern="[a-zA-Z0-9_]{2,32}" title="Letters, numbers, and underscores only (2–32 characters)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password</label>
+          <input type="password" id="signupPassword" placeholder="At least 8 characters" minlength="8" required autocomplete="new-password">
+          <div class="password-strength" id="passwordStrength">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <span class="strength-label" id="strengthLabel"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="signupConfirm">Confirm Password</label>
+          <input type="password" id="signupConfirm" placeholder="Type it again" required autocomplete="new-password">
+          <span class="field-error" id="confirmError"></span>
+        </div>
+        <span class="field-error auth-error" id="signupError"></span>
+        <button type="submit" class="login-btn" id="signupBtn">Create Account</button>
+      </form>
+
+      <div class="login-footer">
+        <span class="login-footer-text">Already have an account?</span>
+        <a href="#" id="showLogin">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guest Banner -->
+  <div class="guest-banner" id="guestBanner">
+    <div class="guest-banner-content">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span>You're lurking as a <strong>Guest</strong> — sign in to post, chat, and interact.</span>
+    </div>
+    <button class="guest-banner-login" id="guestBannerLogin">Sign In</button>
+  </div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-left">
+      <button class="profile-btn" id="profileBtn" aria-label="Profile">
+        <div class="avatar">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <span class="profile-label">Profile</span>
+      </button>
+
+      <button class="chat-btn" aria-label="Open Chat">
+        <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <span>Chat</span>
+        <span class="chat-count">
+          <span class="pulse-dot off"></span>
+          <span id="onlineCount">0</span> online
+        </span>
+      </button>
+
+      <button class="chat-btn" id="reelsBtn" aria-label="Open Reels">
+        <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="20" height="20" rx="3"/>
+          <line x1="2" y1="8" x2="22" y2="8"/>
+          <line x1="8" y1="2" x2="8" y2="8"/>
+          <line x1="16" y1="2" x2="16" y2="8"/>
+          <polygon points="10 13 16 16 10 19 10 13"/>
+        </svg>
+        <span>Reels</span>
+      </button>
+    </div>
+
+    <div class="header-center">
+      <h1 class="site-title">TCC-Central</h1>
+      <p class="quote" id="randomQuote"></p>
+    </div>
+
+    <div class="header-right">
+      <button class="icon-btn" id="notifBtn" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="aboutBtn" aria-label="About">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Side Image -->
+  <div class="side-image" id="sideImage">
+    <input type="file" id="sideImageInput" accept="image/*,.gif" multiple style="display:none">
+    <button class="side-image-add" id="sideImageAdd" aria-label="Add images">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    </button>
+    <button class="side-image-clear" id="sideImageClear" aria-label="Clear images" style="display:none">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+    <div class="side-image-count" id="sideImageCount" style="display:none"></div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="main-layout">
+
+    <!-- Homepage -->
+    <main class="main-content" id="feedView">
+      <div class="content-header">
+        <h2>Home</h2>
+      </div>
+      <div id="homeFeed"></div>
+    </main>
+
+    <!-- Board View (hidden by default) -->
+    <main class="main-content" id="boardView" style="display:none">
+      <div class="content-header">
+        <div class="board-view-header">
+          <button class="back-btn" id="boardBackBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+          </button>
+          <div class="board-color board-view-color" id="boardViewColor"></div>
+          <h2 id="boardViewTitle">Board</h2>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-avatar">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="composer-input">
+          <textarea id="boardComposerInput" placeholder="Post to this board..." rows="2"></textarea>
+          <div class="composer-actions">
+            <div class="composer-tools">
+              <button class="tool-btn" aria-label="Add image">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              </button>
+              <button class="tool-btn" aria-label="Add link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              </button>
+            </div>
+            <button class="post-btn" id="boardPostBtn">Post</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="boardPosts"></div>
+    </main>
+
+    <!-- Boards Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h2>Boards</h2>
+        <button class="icon-btn-sm" aria-label="Add board">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
+      </div>
+
+      <div class="board-card">
+        <div class="board-color" style="background:#e74c3c"></div>
+        <div class="board-info"><h3>Memes &amp; Shitposts</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#3498db"></div>
+        <div class="board-info"><h3>Conspiracy Theories</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#2ecc71"></div>
+        <div class="board-info"><h3>Rate My Fit</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#f39c12"></div>
+        <div class="board-info"><h3>Unpopular Opinions</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#9b59b6"></div>
+        <div class="board-info"><h3>Weird Dreams</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#1abc9c"></div>
+        <div class="board-info"><h3>Music Drops</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#e67e22"></div>
+        <div class="board-info"><h3>Cursed Food</h3><p>0 posts</p></div>
+      </div>
+      <div class="board-card">
+        <div class="board-color" style="background:#ec407a"></div>
+        <div class="board-info"><h3>Pet Pics</h3><p>0 posts</p></div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>Active Comrades</h3>
+        <div class="empty-state-sm">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <p>No comrades online</p>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Shared overlay for all slide-out panels -->
+  <div class="panel-overlay" id="panelOverlay"></div>
+
+  <!-- Discord-style Chat Page (hidden by default) -->
+  <div class="chat-page" id="chatPage" style="display:none">
+    <!-- Channel Sidebar -->
+    <div class="ch-sidebar">
+      <div class="ch-sidebar-header">
+        <h3>TCC Chat</h3>
+      </div>
+      <div class="ch-category">
+        <span class="ch-category-label">TEXT CHANNELS</span>
+        <div class="ch-item active" data-channel="general">
+          <span class="ch-hash">#</span> general
+        </div>
+        <div class="ch-item" data-channel="off-topic">
+          <span class="ch-hash">#</span> off-topic
+        </div>
+        <div class="ch-item" data-channel="music">
+          <span class="ch-hash">#</span> music
+        </div>
+        <div class="ch-item" data-channel="gaming">
+          <span class="ch-hash">#</span> gaming
+        </div>
+        <div class="ch-item" data-channel="memes">
+          <span class="ch-hash">#</span> memes
+        </div>
+      </div>
+      <div class="ch-category">
+        <span class="ch-category-label">DIRECT MESSAGES</span>
+        <div class="ch-dm-new" id="chDmNew">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Message
+        </div>
+        <div class="ch-dm-input-wrap" id="chDmInputWrap" style="display:none">
+          <input type="text" class="ch-dm-input" id="chDmUsernameInput" placeholder="Type a username...">
+        </div>
+        <div id="chDmList"></div>
+      </div>
+      <div class="ch-user-bar">
+        <div class="ch-user-avatar">
+          <svg viewBox="0 0 40 40" fill="none" width="32" height="32">
+            <circle cx="20" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="ch-user-info">
+          <strong id="chatUserName">Comrade</strong>
+          <span>Online</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Area -->
+    <div class="ch-main">
+      <div class="ch-topbar">
+        <button class="back-btn" id="chatBackBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+        </button>
+        <span class="ch-hash">#</span>
+        <h3 id="chatChannelName">general</h3>
+        <span class="ch-topbar-desc" id="chatChannelDesc">Talk about whatever</span>
+      </div>
+      <!-- Now Playing Bar -->
+      <div class="now-playing" id="nowPlaying" style="display:none">
+        <div class="now-playing-art" id="nowPlayingArt"></div>
+        <div class="now-playing-info">
+          <span class="now-playing-label">NOW PLAYING</span>
+          <strong id="nowPlayingTitle">—</strong>
+          <span class="now-playing-user">Queued by <span id="nowPlayingUser">—</span></span>
+        </div>
+        <div class="now-playing-controls">
+          <button class="np-btn" id="npPlayPause" aria-label="Pause">
+            <svg id="npPauseIcon" viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            <svg id="npPlayIcon" viewBox="0 0 24 24" fill="currentColor" width="18" height="18" style="display:none"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          </button>
+          <button class="np-btn" id="npStop" aria-label="Stop">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          </button>
+          <input type="range" class="np-volume" id="npVolume" min="0" max="100" value="80">
+        </div>
+        <div class="now-playing-progress">
+          <div class="np-progress-fill" id="npProgressFill"></div>
+        </div>
+      </div>
+
+      <div class="ch-messages" id="chatMessages">
+        <div class="ch-welcome">
+          <div class="ch-welcome-icon">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </div>
+          <h2>Welcome to #<span id="chatWelcomeChannel">general</span>!</h2>
+          <p>This is the start of the channel.</p>
+        </div>
+      </div>
+
+      <!-- Hidden YouTube Player -->
+      <div id="ytPlayerWrap" style="position:absolute;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none">
+        <div id="ytPlayer"></div>
+      </div>
+      <div class="ch-input-area">
+        <input type="text" class="ch-input" id="chatInput" placeholder="Message #general">
+        <button class="send-btn" aria-label="Send message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Members Sidebar -->
+    <div class="ch-members">
+      <div class="ch-members-header">ONLINE — 0</div>
+      <div class="ch-members-header" style="margin-top:16px">OFFLINE — 0</div>
+    </div>
+  </div>
+
+  <!-- Profile Page -->
+  <div class="profile-page" id="profilePage" style="display:none">
+    <div class="pp-banner" id="ppBanner">
+      <button class="back-btn pp-back-btn" id="ppBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+    </div>
+    <div class="pp-header">
+      <div class="pp-avatar" id="ppAvatar">
+        <svg viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+          <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="pp-info">
+        <h1 id="ppDisplayName">User</h1>
+        <span class="pp-username" id="ppUsername">@user</span>
+        <p class="pp-bio" id="ppBio"></p>
+        <div class="pp-meta">
+          <span class="pp-meta-item">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            Joined <span id="ppJoined">June 2026</span>
+          </span>
+        </div>
+      </div>
+      <div class="pp-actions" id="ppActions">
+        <button class="pp-follow-btn" id="ppFollowBtn">Follow</button>
+        <button class="pp-msg-btn" id="ppMsgBtn">Message</button>
+      </div>
+    </div>
+    <div class="pp-stats">
+      <div class="pp-stat"><strong id="ppPostCount">0</strong> Posts</div>
+      <div class="pp-stat"><strong id="ppFollowers">0</strong> Followers</div>
+      <div class="pp-stat"><strong id="ppFollowing">0</strong> Following</div>
+    </div>
+    <div class="pp-anthem" id="ppAnthem" style="display:none">
+      <div class="pp-anthem-icon">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      </div>
+      <strong id="ppAnthemName">Anthem</strong>
+      <button class="pp-anthem-play" id="ppAnthemPlay">
+        <svg id="ppAnthemPlayIcon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg id="ppAnthemPauseIcon" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="pp-anthem-bar">
+        <div class="pp-anthem-bar-fill" id="ppAnthemBarFill"></div>
+      </div>
+    </div>
+    <div class="pp-tabs">
+      <button class="pp-tab active" data-pptab="posts">Posts</button>
+      <button class="pp-tab" data-pptab="reels">Reels</button>
+      <button class="pp-tab" data-pptab="likes">Likes</button>
+    </div>
+    <div class="pp-content" id="ppContent"></div>
+  </div>
+
+  <!-- Reels Page -->
+  <div class="reels-page" id="reelsPage" style="display:none">
+    <div class="reels-topbar">
+      <button class="back-btn" id="reelsBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+      </button>
+      <h3>Reels</h3>
+      <button class="reels-upload-btn" id="reelsUploadBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create
+      </button>
+    </div>
+    <div class="reels-container" id="reelsContainer"></div>
+    <div class="reels-nav">
+      <button class="reels-nav-btn" id="reelsPrev" aria-label="Previous reel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
+      </button>
+      <button class="reels-nav-btn" id="reelsNext" aria-label="Next reel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="reel-upload-overlay" id="reelUploadOverlay" style="display:none">
+      <div class="reel-upload-modal">
+        <div class="reel-upload-header">
+          <h3>Create Reel</h3>
+          <button class="icon-btn-sm" id="reelUploadClose" aria-label="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <div class="reel-upload-body">
+          <!-- Media Upload -->
+          <div class="reel-upload-media" id="reelDropZone">
+            <input type="file" id="reelFileInput" accept="video/*,image/*" style="display:none">
+            <div class="reel-drop-placeholder" id="reelDropPlaceholder">
+              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>
+              <p>Drop a video or image here</p>
+              <span>or click to browse</span>
+            </div>
+            <div class="reel-drop-preview" id="reelDropPreview" style="display:none">
+              <video id="reelPreviewVideo" muted loop></video>
+              <img id="reelPreviewImg" alt="">
+              <button class="reel-remove-media" id="reelRemoveMedia">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Caption -->
+          <div class="reel-upload-field">
+            <label>Caption</label>
+            <textarea id="reelCaption" placeholder="Write a caption..." rows="3" maxlength="200"></textarea>
+            <span class="reel-char-count"><span id="reelCharCount">0</span>/200</span>
+          </div>
+
+          <!-- Emoji Picker -->
+          <div class="reel-upload-field">
+            <label>Cover Emoji <span class="reel-field-hint">(shown if no media)</span></label>
+            <div class="reel-emoji-picker" id="reelEmojiPicker">
+              <button class="reel-emoji-opt selected" data-emoji="🔥">🔥</button>
+              <button class="reel-emoji-opt" data-emoji="💀">💀</button>
+              <button class="reel-emoji-opt" data-emoji="😭">😭</button>
+              <button class="reel-emoji-opt" data-emoji="🎧">🎧</button>
+              <button class="reel-emoji-opt" data-emoji="🐕">🐕</button>
+              <button class="reel-emoji-opt" data-emoji="👁️">👁️</button>
+              <button class="reel-emoji-opt" data-emoji="✊">✊</button>
+              <button class="reel-emoji-opt" data-emoji="🧠">🧠</button>
+              <button class="reel-emoji-opt" data-emoji="🌧️">🌧️</button>
+              <button class="reel-emoji-opt" data-emoji="🍕">🍕</button>
+              <button class="reel-emoji-opt" data-emoji="💯">💯</button>
+              <button class="reel-emoji-opt" data-emoji="🤡">🤡</button>
+            </div>
+          </div>
+
+          <!-- Vibe / Background -->
+          <div class="reel-upload-field">
+            <label>Background Vibe</label>
+            <div class="reel-bg-picker" id="reelBgPicker">
+              <button class="reel-bg-opt selected" data-bg="linear-gradient(135deg, #e74c3c, #8e44ad)" style="background:linear-gradient(135deg, #e74c3c, #8e44ad)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #f39c12, #e74c3c)" style="background:linear-gradient(135deg, #f39c12, #e74c3c)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #2c3e50, #3498db)" style="background:linear-gradient(135deg, #2c3e50, #3498db)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #1abc9c, #2ecc71)" style="background:linear-gradient(135deg, #1abc9c, #2ecc71)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #ec407a, #ab47bc)" style="background:linear-gradient(135deg, #ec407a, #ab47bc)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #37474f, #78909c)" style="background:linear-gradient(135deg, #37474f, #78909c)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #e67e22, #f39c12)" style="background:linear-gradient(135deg, #e67e22, #f39c12)"></button>
+              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #b71c1c, #d32f2f)" style="background:linear-gradient(135deg, #b71c1c, #d32f2f)"></button>
+            </div>
+          </div>
+
+          <!-- Sound Label -->
+          <div class="reel-upload-field">
+            <label>Sound / Audio Label</label>
+            <input type="text" id="reelSound" placeholder="e.g. Original Audio, Song Name..." class="reel-upload-input">
+          </div>
+        </div>
+
+        <div class="reel-upload-footer">
+          <button class="reel-upload-cancel" id="reelUploadCancel">Cancel</button>
+          <button class="reel-upload-submit" id="reelUploadSubmit">Post Reel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile Panel -->
+  <div class="slide-panel" id="profilePanel">
+    <div class="panel-header">
+      <h3>Profile</h3>
+      <button class="icon-btn-sm panel-close-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <!-- Banner Upload -->
+      <div class="profile-banner-upload" id="profileBannerUpload">
+        <div class="profile-banner-preview" id="profileBannerPreview">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+          <span>Upload Banner</span>
+        </div>
+        <input type="file" id="bannerFileInput" accept="image/*,.gif" style="display:none">
+        <button class="profile-media-remove" id="bannerRemoveBtn" style="display:none">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <!-- Avatar Upload -->
+      <div class="profile-section">
+        <div class="profile-avatar-lg" id="profileAvatarLg">
+          <svg viewBox="0 0 40 40" fill="none">
+            <circle cx="20" cy="16" r="7" stroke="currentColor" stroke-width="2"/>
+            <path d="M6 36c0-7.732 6.268-14 14-14s14 6.268 14 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <div class="profile-avatar-overlay">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+        </div>
+        <input type="file" id="avatarFileInput" accept="image/*,.gif" style="display:none">
+        <button class="upload-avatar-btn" id="avatarUploadBtn">Upload Photo</button>
+        <button class="upload-avatar-btn profile-remove-link" id="avatarRemoveBtn" style="display:none">Remove Photo</button>
+      </div>
+
+      <div class="form-group">
+        <label for="profileName">Display Name</label>
+        <input type="text" id="profileName" placeholder="Enter your name">
+      </div>
+      <div class="form-group">
+        <label for="profileUsername">Username</label>
+        <input type="text" id="profileUsername" placeholder="@handle">
+      </div>
+      <div class="form-group">
+        <label for="profileBio">Bio</label>
+        <textarea id="profileBio" rows="3" placeholder="Tell the collective about yourself..."></textarea>
+      </div>
+
+      <!-- Profile Anthem -->
+      <div class="form-group">
+        <label>Profile Anthem</label>
+        <div class="anthem-upload" id="anthemUpload">
+          <input type="file" id="anthemFileInput" accept="audio/*,.mp3,.wav,.ogg,.m4a" style="display:none">
+          <div class="anthem-empty" id="anthemEmpty">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+            <span>Upload an MP3 to play on your profile</span>
+          </div>
+          <div class="anthem-player" id="anthemPlayer" style="display:none">
+            <button class="anthem-play-btn" id="anthemPlayBtn" aria-label="Play anthem">
+              <svg id="anthemPlayIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <svg id="anthemPauseIcon" viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="display:none"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+            </button>
+            <div class="anthem-info">
+              <strong id="anthemName">anthem.mp3</strong>
+              <div class="anthem-bar">
+                <div class="anthem-bar-fill" id="anthemBarFill"></div>
+              </div>
+            </div>
+            <button class="anthem-remove" id="anthemRemove" aria-label="Remove anthem">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="profile-stats">
+        <div class="stat-item">
+          <span class="stat-value">0</span>
+          <span class="stat-label">Posts</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">0</span>
+          <span class="stat-label">Following</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value">0</span>
+          <span class="stat-label">Followers</span>
+        </div>
+      </div>
+
+      <button class="save-btn" id="saveProfileBtn">Save Profile</button>
+    </div>
+  </div>
+
+  <!-- Notifications Panel -->
+  <div class="slide-panel" id="notifPanel">
+    <div class="panel-header">
+      <h3>Notifications</h3>
+      <button class="text-btn" id="markAllReadBtn">Mark all read</button>
+      <button class="icon-btn-sm panel-close-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="notif-tabs">
+        <button class="notif-tab active" data-filter="all">All</button>
+        <button class="notif-tab" data-filter="mentions">Mentions</button>
+        <button class="notif-tab" data-filter="replies">Replies</button>
+      </div>
+      <div class="empty-state-panel">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <p>No notifications</p>
+        <span>You're all caught up!</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- About Panel -->
+  <div class="slide-panel" id="aboutPanel">
+    <div class="panel-header">
+      <h3>About</h3>
+      <button class="icon-btn-sm panel-close-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="about-logo">
+        <div class="about-symbol">&#9398;</div>
+        <h2>TCC-Central</h2>
+        <span class="about-version">v1.0.0</span>
+      </div>
+
+      <div class="about-section">
+        <h4>What is TCC-Central?</h4>
+        <p>TCC-Central is a community-driven forum and chat platform built for open discussion, creative expression, and connecting with like-minded people. Share posts on boards, chat in real-time, upload reels, and customize your profile.</p>
+      </div>
+
+      <div class="about-section">
+        <h4>Features</h4>
+        <ul class="about-list">
+          <li>Discussion boards with replies and likes</li>
+          <li>Discord-style real-time chat with channels</li>
+          <li>Direct messages</li>
+          <li>Instagram-style reels with uploads</li>
+          <li>Customizable profiles with banners, avatars, and anthems</li>
+          <li>/play command for YouTube audio in chat</li>
+        </ul>
+      </div>
+
+      <div class="about-section">
+        <h4>Built With</h4>
+        <div class="about-tags">
+          <span class="about-tag">HTML</span>
+          <span class="about-tag">CSS</span>
+          <span class="about-tag">JavaScript</span>
+          <span class="about-tag">YouTube IFrame API</span>
+          <span class="about-tag">Google Fonts</span>
+        </div>
+      </div>
+
+      <div class="about-section">
+        <h4>Credits</h4>
+        <p>Created by the TCC-Central team. Font: Black Ops One. All data is stored locally in your browser via localStorage.</p>
+      </div>
+
+      <div class="about-footer">
+        <p>&copy; 2026 TCC-Central. No gods. No masters. No algorithms.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Panel -->
+  <div class="slide-panel" id="settingsPanel">
+    <div class="panel-header">
+      <h3>Settings</h3>
+      <button class="icon-btn-sm panel-close-btn" data-close aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="panel-body">
+      <div class="settings-group">
+        <h4>Appearance</h4>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Dark Mode</span>
+            <span class="setting-desc">Use dark theme across the forum</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="darkModeToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Compact View</span>
+            <span class="setting-desc">Reduce spacing in the feed</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="compactToggle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>Notifications</h4>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Push Notifications</span>
+            <span class="setting-desc">Get notified about new activity</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="pushNotifToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Sound Effects</span>
+            <span class="setting-desc">Play sounds for new messages</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="soundToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>Privacy</h4>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Online Status</span>
+            <span class="setting-desc">Show when you're active</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="onlineStatusToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="setting-row">
+          <div class="setting-info">
+            <span class="setting-name">Read Receipts</span>
+            <span class="setting-desc">Let others see when you've read messages</span>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="readReceiptsToggle" checked>
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>Integrations</h4>
+        <div class="setting-row setting-row-col">
+          <div class="setting-info">
+            <span class="setting-name">YouTube Data API v3 Key</span>
+            <span class="setting-desc">Required for /play to fetch video titles, thumbnails, and durations. Get a key from the Google Cloud Console.</span>
+          </div>
+          <div class="setting-key-row">
+            <input type="password" id="ytApiKeyInput" class="setting-key-input" placeholder="AIza...">
+            <button class="setting-key-toggle" id="ytApiKeyToggle" aria-label="Show key">
+              <svg id="ytKeyShowIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <svg id="ytKeyHideIcon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+            </button>
+            <button class="setting-key-save" id="ytApiKeySave">Save</button>
+          </div>
+          <span class="setting-key-status" id="ytApiKeyStatus"></span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h4>Account</h4>
+        <button class="settings-action-btn" id="changePasswordBtn">Change Password</button>
+        <button class="settings-action-btn danger" id="signOutBtn">Sign Out</button>
+        <button class="settings-action-btn danger">Delete Account</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="{% static 'script.js' %}"></script>
+</body>
+</html>
