@@ -7,14 +7,9 @@
   <meta name="csrf-token" content="{{ csrf_token }}">
   <title>Admin Dashboard — TCC-Central</title>
   {% if ga_measurement_id %}
-  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', '{{ ga_measurement_id }}');
-  </script>
+  <script>window.GA_MEASUREMENT_ID = '{{ ga_measurement_id }}';</script>
   {% endif %}
+  <script src="{% static 'cookie_consent.js' %}"></script>
   <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'styles.css' %}">
 </head>

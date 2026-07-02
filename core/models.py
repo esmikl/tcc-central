@@ -12,6 +12,9 @@ class User(AbstractUser):
     anthem_name = models.CharField(max_length=200, blank=True)
     agreed_to_terms = models.BooleanField(default=False)
     terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    # Null = no choice made yet (pre-existing accounts, or never decided on this account).
+    cookie_consent_analytics = models.BooleanField(null=True, blank=True)
+    cookie_consent_at = models.DateTimeField(null=True, blank=True)
     # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
     registration_ip = models.GenericIPAddressField(null=True, blank=True)
     last_login_ip = models.GenericIPAddressField(null=True, blank=True)
@@ -36,6 +39,7 @@ class User(AbstractUser):
         if include_private:
             data['is_staff'] = self.is_staff
             data['email'] = self.email
+            data['cookie_consent_analytics'] = self.cookie_consent_analytics
         return data
 
 

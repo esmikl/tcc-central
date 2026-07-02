@@ -3154,6 +3154,10 @@ body.light-mode .header {
   line-height: 1.6;
 }
 
+.modal-body a {
+  color: var(--accent);
+}
+
 .modal-footer {
   padding: 16px 24px 20px;
   border-top: 1px solid var(--border);
@@ -3202,6 +3206,67 @@ body.light-mode .header {
 .modal-btn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* ── Cookie Consent Modal ───────────────────────────────── */
+/* Deliberately non-blocking, unlike .modal-overlay: cookie choices shouldn't
+   prevent someone from logging in or browsing while they decide. Positioned
+   as a corner card instead of a full-screen backdrop. */
+
+.cookie-modal-overlay {
+  position: fixed;
+  inset: auto 20px 20px auto;
+  z-index: 1100;
+  max-width: calc(100vw - 40px);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(12px);
+  transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease;
+}
+
+.cookie-modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.cookie-modal-overlay .cookie-modal {
+  pointer-events: auto;
+  width: 380px;
+  max-width: 100%;
+  margin: 0;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.cookie-category {
+  padding: 14px 0;
+  border-top: 1px solid var(--border);
+}
+
+.cookie-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cookie-category-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cookie-category-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.cookie-category-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
 /* ── Guest Banner ──────────────────────────────────────── */

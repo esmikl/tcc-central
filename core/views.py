@@ -269,6 +269,9 @@ def profile_view(request):
             user.anthem_data = data['anthem_data']
         if 'anthem_name' in data:
             user.anthem_name = data['anthem_name']
+        if 'cookie_consent_analytics' in data:
+            user.cookie_consent_analytics = bool(data['cookie_consent_analytics'])
+            user.cookie_consent_at = timezone.now()
         user.save()
         return JsonResponse({'user': user.to_dict(include_private=True)})
 

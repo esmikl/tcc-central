@@ -34,6 +34,7 @@ function enterApp(asGuest, user) {
     localStorage.setItem('tcc_profileName', displayName);
     localStorage.setItem('tcc_profileUsername', handle);
     if (user.bio) localStorage.setItem('tcc_profileBio', user.bio);
+    if (typeof reconcileServerCookieConsent === 'function') reconcileServerCookieConsent(user);
   }
 
   const adminDashboardBtn = document.getElementById('adminDashboardBtn');
@@ -316,6 +317,75 @@ termsAcceptBtn.addEventListener('click', () => {
   closeTermsModal();
   completeRegistration();
 });
+
+// ── Cookie Consent Modal ────────────────────────────────────
+// getCookieConsent/setCookieConsent live in cookie_consent.js (shared with
+// terms.html and admin_dashboard.html, which don't load this file).
+
+const cookieModalOverlay = document.getElementById('cookieModalOverlay');
+const cookieAnalyticsToggle = document.getElementById('cookieAnalyticsToggle');
+const cookieModalClose = document.getElementById('cookieModalClose');
+const cookieRejectBtn = document.getElementById('cookieRejectBtn');
+const cookieSaveBtn = document.getElementById('cookieSaveBtn');
+
+function openCookieModal(mandatory) {
+  const current = getCookieConsent();
+  cookieAnalyticsToggle.checked = !!(current && current.analytics);
+  cookieModalOverlay.dataset.mandatory = mandatory ? 'true' : 'false';
+  cookieModalClose.style.display = mandatory ? 'none' : '';
+  cookieModalOverlay.classList.add('open');
+}
+
+function closeCookieModal() {
+  if (cookieModalOverlay.dataset.mandatory === 'true') return;
+  cookieModalOverlay.classList.remove('open');
+}
+
+async function saveCookieConsentChoice(analytics) {
+  setCookieConsent(analytics);
+  cookieModalOverlay.classList.remove('open');
+  if (currentUser && !isGuest) {
+    try {
+      await fetch('/api/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cookie_consent_analytics: analytics }),
+      });
+    } catch {
+      // best effort — the local choice still applies via localStorage regardless
+    }
+  }
+}
+
+// If a logged-in user already has a choice on file (e.g. from another device),
+// adopt it here instead of asking again, and dismiss the prompt if it's showing.
+function reconcileServerCookieConsent(user) {
+  if (!user || user.cookie_consent_analytics === null || user.cookie_consent_analytics === undefined) return;
+  if (!getCookieConsent()) {
+    setCookieConsent(user.cookie_consent_analytics);
+  }
+  if (cookieModalOverlay.dataset.mandatory === 'true' && getCookieConsent()) {
+    cookieModalOverlay.classList.remove('open');
+  }
+}
+
+// No backdrop-click-to-close: the overlay itself has pointer-events:none by
+// design (see styles.css) so it never blocks the page underneath — closing
+// only happens via the explicit buttons/close icon.
+cookieModalClose.addEventListener('click', closeCookieModal);
+cookieRejectBtn.addEventListener('click', () => saveCookieConsentChoice(false));
+cookieSaveBtn.addEventListener('click', () => saveCookieConsentChoice(cookieAnalyticsToggle.checked));
+
+document.getElementById('manageCookiePrefsBtn').addEventListener('click', () => {
+  closePanel();
+  openCookieModal(false);
+});
+
+// Prompt on first visit — before any login/guest choice is even made, since
+// the login screen itself can already be subject to analytics tracking.
+if (!getCookieConsent()) {
+  openCookieModal(true);
+}
 
 // ── Randomized Quotes ─────────────────────────────────────
 // Quotes are managed by admins (see the admin dashboard) and served from
