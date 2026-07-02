@@ -6,11 +6,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="{{ csrf_token }}">
   <title>TCC-Central</title>
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ ga_measurement_id }}');
+  </script>
+  {% endif %}
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'styles.css' %}">
   <script src="https://www.youtube.com/iframe_api" defer></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" defer></script>
 </head>
 <body>
 
@@ -67,6 +77,8 @@
         <p class="login-tagline">Join the collective</p>
       </div>
 
+      <p class="age-notice">TCC-Central hosts mature and adult content. You must be at least 18 years old to create an account.</p>
+
       <form class="login-form" id="signupForm">
         <div class="form-group">
           <label for="signupName">Display Name</label>
@@ -78,6 +90,15 @@
             <span class="input-prefix">@</span>
             <input type="text" id="signupUsername" placeholder="pick a handle" required autocomplete="username" pattern="[a-zA-Z0-9_]{2,32}" title="Letters, numbers, and underscores only (2–32 characters)">
           </div>
+        </div>
+        <div class="form-group">
+          <label for="signupEmail">Email</label>
+          <input type="email" id="signupEmail" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="signupBirthdate">Date of Birth</label>
+          <input type="date" id="signupBirthdate" required autocomplete="bday" max="{% now 'Y-m-d' %}">
+          <span class="field-error" id="birthdateError"></span>
         </div>
         <div class="form-group">
           <label for="signupPassword">Password</label>
@@ -92,6 +113,10 @@
           <input type="password" id="signupConfirm" placeholder="Type it again" required autocomplete="new-password">
           <span class="field-error" id="confirmError"></span>
         </div>
+        <div class="form-group">
+          <div class="cf-turnstile" id="signupTurnstile" data-sitekey="{{ turnstile_site_key }}"></div>
+          <span class="field-error" id="captchaError"></span>
+        </div>
         <span class="field-error auth-error" id="signupError"></span>
         <button type="submit" class="login-btn" id="signupBtn">Create Account</button>
       </form>
@@ -99,6 +124,30 @@
       <div class="login-footer">
         <span class="login-footer-text">Already have an account?</span>
         <a href="#" id="showLogin">Sign in</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Terms and Conditions Modal -->
+  <div class="modal-overlay" id="termsModalOverlay">
+    <div class="modal terms-modal" role="dialog" aria-modal="true" aria-labelledby="termsModalTitle">
+      <div class="modal-header">
+        <h2 id="termsModalTitle">Terms &amp; Conditions</h2>
+        <button type="button" class="modal-close" id="termsModalClose" aria-label="Close">&times;</button>
+      </div>
+      <div class="modal-body" id="termsContent">
+        {% include 'core/_terms_content.html' %}
+      </div>
+      <div class="modal-footer">
+        <label class="checkbox-label">
+          <input type="checkbox" id="termsAgreeCheckbox">
+          <span class="checkmark"></span>
+          I have read and agree to the Terms and Conditions
+        </label>
+        <div class="modal-actions">
+          <button type="button" class="modal-btn-secondary" id="termsCancelBtn">Cancel</button>
+          <button type="button" class="modal-btn-primary" id="termsAcceptBtn" disabled>Agree &amp; Create Account</button>
+        </div>
       </div>
     </div>
   </div>
@@ -139,16 +188,16 @@
         </span>
       </button>
 
-      <button class="chat-btn" id="reelsBtn" aria-label="Open Reels">
-        <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="2" y="2" width="20" height="20" rx="3"/>
-          <line x1="2" y1="8" x2="22" y2="8"/>
-          <line x1="8" y1="2" x2="8" y2="8"/>
-          <line x1="16" y1="2" x2="16" y2="8"/>
-          <polygon points="10 13 16 16 10 19 10 13"/>
-        </svg>
-        <span>Reels</span>
-      </button>
+<!--      <button class="chat-btn" id="reelsBtn" aria-label="Open Reels">-->
+<!--        <svg class="chat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">-->
+<!--          <rect x="2" y="2" width="20" height="20" rx="3"/>-->
+<!--          <line x1="2" y1="8" x2="22" y2="8"/>-->
+<!--          <line x1="8" y1="2" x2="8" y2="8"/>-->
+<!--          <line x1="16" y1="2" x2="16" y2="8"/>-->
+<!--          <polygon points="10 13 16 16 10 19 10 13"/>-->
+<!--        </svg>-->
+<!--        <span>Reels</span>-->
+<!--      </button>-->
     </div>
 
     <div class="header-center">
@@ -157,6 +206,11 @@
     </div>
 
     <div class="header-right">
+      <a class="icon-btn" id="adminDashboardBtn" href="{% url 'admin_dashboard' %}" aria-label="Admin Dashboard" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2 3 6v6c0 5 3.8 8.7 9 10 5.2-1.3 9-5 9-10V6l-9-4z"/>
+        </svg>
+      </a>
       <button class="icon-btn" id="notifBtn" aria-label="Notifications">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -249,38 +303,7 @@
         </button>
       </div>
 
-      <div class="board-card">
-        <div class="board-color" style="background:#e74c3c"></div>
-        <div class="board-info"><h3>Memes &amp; Shitposts</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#3498db"></div>
-        <div class="board-info"><h3>Conspiracy Theories</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#2ecc71"></div>
-        <div class="board-info"><h3>Rate My Fit</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#f39c12"></div>
-        <div class="board-info"><h3>Unpopular Opinions</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#9b59b6"></div>
-        <div class="board-info"><h3>Weird Dreams</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#1abc9c"></div>
-        <div class="board-info"><h3>Music Drops</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#e67e22"></div>
-        <div class="board-info"><h3>Cursed Food</h3><p>0 posts</p></div>
-      </div>
-      <div class="board-card">
-        <div class="board-color" style="background:#ec407a"></div>
-        <div class="board-info"><h3>Pet Pics</h3><p>0 posts</p></div>
-      </div>
+      <div id="boardCardList"></div>
 
       <div class="sidebar-section">
         <h3>Active Comrades</h3>
@@ -465,119 +488,119 @@
     </div>
     <div class="pp-tabs">
       <button class="pp-tab active" data-pptab="posts">Posts</button>
-      <button class="pp-tab" data-pptab="reels">Reels</button>
+<!--      <button class="pp-tab" data-pptab="reels">Reels</button>-->
       <button class="pp-tab" data-pptab="likes">Likes</button>
     </div>
     <div class="pp-content" id="ppContent"></div>
   </div>
 
   <!-- Reels Page -->
-  <div class="reels-page" id="reelsPage" style="display:none">
-    <div class="reels-topbar">
-      <button class="back-btn" id="reelsBackBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-      </button>
-      <h3>Reels</h3>
-      <button class="reels-upload-btn" id="reelsUploadBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Create
-      </button>
-    </div>
-    <div class="reels-container" id="reelsContainer"></div>
-    <div class="reels-nav">
-      <button class="reels-nav-btn" id="reelsPrev" aria-label="Previous reel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>
-      </button>
-      <button class="reels-nav-btn" id="reelsNext" aria-label="Next reel">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
-      </button>
-    </div>
+<!--  <div class="reels-page" id="reelsPage" style="display:none">-->
+<!--    <div class="reels-topbar">-->
+<!--      <button class="back-btn" id="reelsBackBtn">-->
+<!--        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>-->
+<!--      </button>-->
+<!--      <h3>Reels</h3>-->
+<!--      <button class="reels-upload-btn" id="reelsUploadBtn">-->
+<!--        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>-->
+<!--        Create-->
+<!--      </button>-->
+<!--    </div>-->
+<!--    <div class="reels-container" id="reelsContainer"></div>-->
+<!--    <div class="reels-nav">-->
+<!--      <button class="reels-nav-btn" id="reelsPrev" aria-label="Previous reel">-->
+<!--        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 15l-6-6-6 6"/></svg>-->
+<!--      </button>-->
+<!--      <button class="reels-nav-btn" id="reelsNext" aria-label="Next reel">-->
+<!--        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>-->
+<!--      </button>-->
+<!--    </div>-->
 
-    <!-- Upload Modal -->
-    <div class="reel-upload-overlay" id="reelUploadOverlay" style="display:none">
-      <div class="reel-upload-modal">
-        <div class="reel-upload-header">
-          <h3>Create Reel</h3>
-          <button class="icon-btn-sm" id="reelUploadClose" aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
+<!--    &lt;!&ndash; Upload Modal &ndash;&gt;-->
+<!--    <div class="reel-upload-overlay" id="reelUploadOverlay" style="display:none">-->
+<!--      <div class="reel-upload-modal">-->
+<!--        <div class="reel-upload-header">-->
+<!--          <h3>Create Reel</h3>-->
+<!--          <button class="icon-btn-sm" id="reelUploadClose" aria-label="Close">-->
+<!--            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>-->
+<!--          </button>-->
+<!--        </div>-->
 
-        <div class="reel-upload-body">
-          <!-- Media Upload -->
-          <div class="reel-upload-media" id="reelDropZone">
-            <input type="file" id="reelFileInput" accept="video/*,image/*" style="display:none">
-            <div class="reel-drop-placeholder" id="reelDropPlaceholder">
-              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>
-              <p>Drop a video or image here</p>
-              <span>or click to browse</span>
-            </div>
-            <div class="reel-drop-preview" id="reelDropPreview" style="display:none">
-              <video id="reelPreviewVideo" muted loop></video>
-              <img id="reelPreviewImg" alt="">
-              <button class="reel-remove-media" id="reelRemoveMedia">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-          </div>
+<!--        <div class="reel-upload-body">-->
+<!--          &lt;!&ndash; Media Upload &ndash;&gt;-->
+<!--          <div class="reel-upload-media" id="reelDropZone">-->
+<!--            <input type="file" id="reelFileInput" accept="video/*,image/*" style="display:none">-->
+<!--            <div class="reel-drop-placeholder" id="reelDropPlaceholder">-->
+<!--              <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">-->
+<!--                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>-->
+<!--              </svg>-->
+<!--              <p>Drop a video or image here</p>-->
+<!--              <span>or click to browse</span>-->
+<!--            </div>-->
+<!--            <div class="reel-drop-preview" id="reelDropPreview" style="display:none">-->
+<!--              <video id="reelPreviewVideo" muted loop></video>-->
+<!--              <img id="reelPreviewImg" alt="">-->
+<!--              <button class="reel-remove-media" id="reelRemoveMedia">-->
+<!--                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>-->
+<!--              </button>-->
+<!--            </div>-->
+<!--          </div>-->
 
-          <!-- Caption -->
-          <div class="reel-upload-field">
-            <label>Caption</label>
-            <textarea id="reelCaption" placeholder="Write a caption..." rows="3" maxlength="200"></textarea>
-            <span class="reel-char-count"><span id="reelCharCount">0</span>/200</span>
-          </div>
+<!--          &lt;!&ndash; Caption &ndash;&gt;-->
+<!--          <div class="reel-upload-field">-->
+<!--            <label>Caption</label>-->
+<!--            <textarea id="reelCaption" placeholder="Write a caption..." rows="3" maxlength="200"></textarea>-->
+<!--            <span class="reel-char-count"><span id="reelCharCount">0</span>/200</span>-->
+<!--          </div>-->
 
-          <!-- Emoji Picker -->
-          <div class="reel-upload-field">
-            <label>Cover Emoji <span class="reel-field-hint">(shown if no media)</span></label>
-            <div class="reel-emoji-picker" id="reelEmojiPicker">
-              <button class="reel-emoji-opt selected" data-emoji="🔥">🔥</button>
-              <button class="reel-emoji-opt" data-emoji="💀">💀</button>
-              <button class="reel-emoji-opt" data-emoji="😭">😭</button>
-              <button class="reel-emoji-opt" data-emoji="🎧">🎧</button>
-              <button class="reel-emoji-opt" data-emoji="🐕">🐕</button>
-              <button class="reel-emoji-opt" data-emoji="👁️">👁️</button>
-              <button class="reel-emoji-opt" data-emoji="✊">✊</button>
-              <button class="reel-emoji-opt" data-emoji="🧠">🧠</button>
-              <button class="reel-emoji-opt" data-emoji="🌧️">🌧️</button>
-              <button class="reel-emoji-opt" data-emoji="🍕">🍕</button>
-              <button class="reel-emoji-opt" data-emoji="💯">💯</button>
-              <button class="reel-emoji-opt" data-emoji="🤡">🤡</button>
-            </div>
-          </div>
+<!--          &lt;!&ndash; Emoji Picker &ndash;&gt;-->
+<!--          <div class="reel-upload-field">-->
+<!--            <label>Cover Emoji <span class="reel-field-hint">(shown if no media)</span></label>-->
+<!--            <div class="reel-emoji-picker" id="reelEmojiPicker">-->
+<!--              <button class="reel-emoji-opt selected" data-emoji="🔥">🔥</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="💀">💀</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="😭">😭</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🎧">🎧</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🐕">🐕</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="👁️">👁️</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="✊">✊</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🧠">🧠</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🌧️">🌧️</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🍕">🍕</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="💯">💯</button>-->
+<!--              <button class="reel-emoji-opt" data-emoji="🤡">🤡</button>-->
+<!--            </div>-->
+<!--          </div>-->
 
-          <!-- Vibe / Background -->
-          <div class="reel-upload-field">
-            <label>Background Vibe</label>
-            <div class="reel-bg-picker" id="reelBgPicker">
-              <button class="reel-bg-opt selected" data-bg="linear-gradient(135deg, #e74c3c, #8e44ad)" style="background:linear-gradient(135deg, #e74c3c, #8e44ad)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #f39c12, #e74c3c)" style="background:linear-gradient(135deg, #f39c12, #e74c3c)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #2c3e50, #3498db)" style="background:linear-gradient(135deg, #2c3e50, #3498db)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #1abc9c, #2ecc71)" style="background:linear-gradient(135deg, #1abc9c, #2ecc71)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #ec407a, #ab47bc)" style="background:linear-gradient(135deg, #ec407a, #ab47bc)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #37474f, #78909c)" style="background:linear-gradient(135deg, #37474f, #78909c)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #e67e22, #f39c12)" style="background:linear-gradient(135deg, #e67e22, #f39c12)"></button>
-              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #b71c1c, #d32f2f)" style="background:linear-gradient(135deg, #b71c1c, #d32f2f)"></button>
-            </div>
-          </div>
+<!--          &lt;!&ndash; Vibe / Background &ndash;&gt;-->
+<!--          <div class="reel-upload-field">-->
+<!--            <label>Background Vibe</label>-->
+<!--            <div class="reel-bg-picker" id="reelBgPicker">-->
+<!--              <button class="reel-bg-opt selected" data-bg="linear-gradient(135deg, #e74c3c, #8e44ad)" style="background:linear-gradient(135deg, #e74c3c, #8e44ad)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #f39c12, #e74c3c)" style="background:linear-gradient(135deg, #f39c12, #e74c3c)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #2c3e50, #3498db)" style="background:linear-gradient(135deg, #2c3e50, #3498db)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #1abc9c, #2ecc71)" style="background:linear-gradient(135deg, #1abc9c, #2ecc71)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #ec407a, #ab47bc)" style="background:linear-gradient(135deg, #ec407a, #ab47bc)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #37474f, #78909c)" style="background:linear-gradient(135deg, #37474f, #78909c)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #e67e22, #f39c12)" style="background:linear-gradient(135deg, #e67e22, #f39c12)"></button>-->
+<!--              <button class="reel-bg-opt" data-bg="linear-gradient(135deg, #b71c1c, #d32f2f)" style="background:linear-gradient(135deg, #b71c1c, #d32f2f)"></button>-->
+<!--            </div>-->
+<!--          </div>-->
 
-          <!-- Sound Label -->
-          <div class="reel-upload-field">
-            <label>Sound / Audio Label</label>
-            <input type="text" id="reelSound" placeholder="e.g. Original Audio, Song Name..." class="reel-upload-input">
-          </div>
-        </div>
+<!--          &lt;!&ndash; Sound Label &ndash;&gt;-->
+<!--          <div class="reel-upload-field">-->
+<!--            <label>Sound / Audio Label</label>-->
+<!--            <input type="text" id="reelSound" placeholder="e.g. Original Audio, Song Name..." class="reel-upload-input">-->
+<!--          </div>-->
+<!--        </div>-->
 
-        <div class="reel-upload-footer">
-          <button class="reel-upload-cancel" id="reelUploadCancel">Cancel</button>
-          <button class="reel-upload-submit" id="reelUploadSubmit">Post Reel</button>
-        </div>
-      </div>
-    </div>
-  </div>
+<!--        <div class="reel-upload-footer">-->
+<!--          <button class="reel-upload-cancel" id="reelUploadCancel">Cancel</button>-->
+<!--          <button class="reel-upload-submit" id="reelUploadSubmit">Post Reel</button>-->
+<!--        </div>-->
+<!--      </div>-->
+<!--    </div>-->
+<!--  </div>-->
 
   <!-- Profile Panel -->
   <div class="slide-panel" id="profilePanel">
@@ -718,7 +741,11 @@
 
       <div class="about-section">
         <h4>What is TCC-Central?</h4>
-        <p>TCC-Central is a community-driven forum and chat platform built for open discussion, creative expression, and connecting with like-minded people. Share posts on boards, chat in real-time, upload reels, and customize your profile.</p>
+        <p>We are the TCC, the True Crime Community! After facing bans from various platforms, we at TCC-Central have chosen to create our own environment
+          for individuals interested in True Crime and other controversial topics! Although we do have guidelines, our approach is significantly more relaxed
+          compared to other websites. We are more accepting regarding what constitutes 'gLoRIfYInG vIOlEnCE'. In our view, the term 'glorification' has long been
+          misused as a justification for censoring and banning artists who simply wish to explore taboo subjects and express themselves. At TCC-Central, we firmly
+          believe it is essential to provide these individuals with a space where they can truly be themselves.</p>
       </div>
 
       <div class="about-section">
@@ -727,7 +754,7 @@
           <li>Discussion boards with replies and likes</li>
           <li>Discord-style real-time chat with channels</li>
           <li>Direct messages</li>
-          <li>Instagram-style reels with uploads</li>
+<!--          <li>Instagram-style reels with uploads</li>-->
           <li>Customizable profiles with banners, avatars, and anthems</li>
           <li>/play command for YouTube audio in chat</li>
         </ul>
@@ -747,6 +774,11 @@
       <div class="about-section">
         <h4>Credits</h4>
         <p>Created by the TCC-Central team. Font: Black Ops One. All data is stored locally in your browser via localStorage.</p>
+      </div>
+
+      <div class="about-section">
+        <h4>Legal</h4>
+        <a href="{% url 'terms' %}" target="_blank" rel="noopener" class="about-legal-link">Terms of Service &amp; Privacy Agreement</a>
       </div>
 
       <div class="about-footer">

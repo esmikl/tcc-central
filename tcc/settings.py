@@ -2,17 +2,44 @@ import os
 from pathlib import Path
 from urllib.parse import urlparse
 
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 load_dotenv(BASE_DIR / '.env')
 
-SECRET_KEY = 'django-insecure-tcc-central-change-this-in-production-k8x#!2q@mz$vn9p'
+DEBUG = os.environ.get('DEBUG', '').strip().lower() == 'true'
 
-DEBUG = True
+SECRET_KEY = os.environ.get('SECRET_KEY')
+if not SECRET_KEY:
+    if DEBUG:
+        # Dev-only fallback so a fresh checkout works without extra setup.
+        # Never reused as a real secret — production must set SECRET_KEY.
+        SECRET_KEY = 'django-insecure-dev-only-do-not-use-in-production'
+    else:
+        raise ImproperlyConfigured(
+            'SECRET_KEY environment variable must be set when DEBUG is False.'
+        )
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h.strip()]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['*']
+
+# Google Analytics (GA4). Not a secret — it's visible in every page's source —
+# so it's fine as a checked-in default, still overridable per-environment.
+# Only loaded when DEBUG is False so local/dev traffic doesn't pollute real data.
+GA_MEASUREMENT_ID = os.environ.get('GA_MEASUREMENT_ID', 'G-H1QLDP8QRC')
+
+# Cloudflare Turnstile (CAPTCHA on signup). The site key is public (rendered in
+# every page's source) so it's fine as a checked-in default. The secret key is
+# sensitive — it must come from the environment only, never hardcoded here.
+TURNSTILE_SITE_KEY = os.environ.get('TURNSTILE_SITE_KEY', '0x4AAAAAADurJHGA8inVn0eM')
+TURNSTILE_SECRET_KEY = os.environ.get('TURNSTILE_SECRET_KEY', '')
+if not DEBUG and not TURNSTILE_SECRET_KEY:
+    raise ImproperlyConfigured(
+        'TURNSTILE_SECRET_KEY environment variable must be set when DEBUG is False.'
+    )
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -46,6 +73,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'core.context_processors.analytics',
+                'core.context_processors.turnstile',
             ],
         },
     },
@@ -82,6 +111,9 @@ else:
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 8}},
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
 LANGUAGE_CODE = 'en-us'

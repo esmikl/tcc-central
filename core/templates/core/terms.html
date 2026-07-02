@@ -1,0 +1,34 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Terms of Service & Privacy Agreement — TCC-Central</title>
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ ga_measurement_id }}');
+  </script>
+  {% endif %}
+  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <div class="legal-page">
+    <div class="legal-page-inner">
+      <a href="{% url 'index' %}" class="legal-back-link">&larr; Back to TCC-Central</a>
+      <div class="legal-header">
+        <div class="about-symbol">&#9398;</div>
+        <h1>Terms of Service &amp; Privacy Agreement</h1>
+      </div>
+      <div class="legal-body">
+        {% include 'core/_terms_content.html' %}
+      </div>
+    </div>
+  </div>
+</body>
+</html>

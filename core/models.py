@@ -10,12 +10,17 @@ class User(AbstractUser):
     banner_data = models.TextField(blank=True)
     anthem_data = models.TextField(blank=True)
     anthem_name = models.CharField(max_length=200, blank=True)
+    agreed_to_terms = models.BooleanField(default=False)
+    terms_accepted_at = models.DateTimeField(null=True, blank=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    registration_ip = models.GenericIPAddressField(null=True, blank=True)
+    last_login_ip = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         db_table = 'core_user'
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_private=False):
+        data = {
             'id': self.id,
             'username': self.username,
             'display_name': self.display_name or self.username,
@@ -28,6 +33,10 @@ class User(AbstractUser):
             'follower_count': self.followers.count(),
             'following_count': self.following.count(),
         }
+        if include_private:
+            data['is_staff'] = self.is_staff
+            data['email'] = self.email
+        return data
 
 
 class Board(models.Model):
@@ -47,6 +56,8 @@ class Post(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='posts')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -82,6 +93,8 @@ class Reply(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='replies')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         ordering = ['created_at']
@@ -101,6 +114,8 @@ class ChatMessage(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
     text = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         ordering = ['created_at']
@@ -122,6 +137,8 @@ class DirectMessage(models.Model):
     text = models.TextField()
     read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         ordering = ['created_at']
@@ -151,6 +168,8 @@ class Reel(models.Model):
     media = models.FileField(upload_to='reels/', blank=True, null=True)
     media_type = models.CharField(max_length=10, blank=True, choices=[('video', 'Video'), ('image', 'Image')])
     created_at = models.DateTimeField(auto_now_add=True)
+    # Retained for abuse investigation / law-enforcement requests. Never exposed via the API.
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -211,3 +230,15 @@ class Follow(models.Model):
 
     class Meta:
         unique_together = ('follower', 'following')
+
+
+class Quote(models.Model):
+    text = models.CharField(max_length=300)
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.text[:60]

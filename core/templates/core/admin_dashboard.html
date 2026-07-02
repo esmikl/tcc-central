@@ -1,0 +1,118 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="csrf-token" content="{{ csrf_token }}">
+  <title>Admin Dashboard — TCC-Central</title>
+  {% if ga_measurement_id %}
+  <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_measurement_id }}"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', '{{ ga_measurement_id }}');
+  </script>
+  {% endif %}
+  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+  <div class="admin-page">
+    <div class="admin-page-inner">
+      <a href="{% url 'index' %}" class="legal-back-link">&larr; Back to TCC-Central</a>
+      <div class="admin-header">
+        <div class="about-symbol">&#9398;</div>
+        <h1>Admin Dashboard</h1>
+      </div>
+
+      <div class="admin-tabs">
+        <button class="admin-tab active" data-tab="users">Users</button>
+        <button class="admin-tab" data-tab="posts">Posts</button>
+        <button class="admin-tab" data-tab="boards">Boards</button>
+        <button class="admin-tab" data-tab="quotes">Quotes</button>
+      </div>
+
+      <!-- Users -->
+      <div class="admin-panel active" id="adminPanelUsers">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Username</th>
+              <th>Display Name</th>
+              <th>Email</th>
+              <th>Posts</th>
+              <th>Joined</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Posts -->
+      <div class="admin-panel" id="adminPanelPosts">
+        <div class="admin-toolbar">
+          <input type="text" id="adminPostSearch" placeholder="Search posts by text or username...">
+          <button class="modal-btn-primary" id="adminPostSearchBtn">Search</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Board</th>
+              <th>User</th>
+              <th>Text</th>
+              <th>Date</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminPostsBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Boards -->
+      <div class="admin-panel" id="adminPanelBoards">
+        <div class="admin-toolbar">
+          <input type="text" id="adminNewBoardName" placeholder="New board name">
+          <input type="color" id="adminNewBoardColor" value="#e74c3c">
+          <button class="modal-btn-primary" id="adminAddBoardBtn">Add Board</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Color</th>
+              <th>Name</th>
+              <th>Posts</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminBoardsBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Quotes -->
+      <div class="admin-panel" id="adminPanelQuotes">
+        <div class="admin-toolbar">
+          <input type="text" id="adminNewQuoteText" placeholder="New header quote">
+          <button class="modal-btn-primary" id="adminAddQuoteBtn">Add Quote</button>
+        </div>
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Quote</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="adminQuotesBody"></tbody>
+        </table>
+      </div>
+
+      <p class="admin-status" id="adminStatus"></p>
+    </div>
+  </div>
+
+  <script src="{% static 'admin_dashboard.js' %}"></script>
+</body>
+</html>

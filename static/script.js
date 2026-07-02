@@ -35,6 +35,13 @@ function enterApp(asGuest, user) {
     localStorage.setItem('tcc_profileUsername', handle);
     if (user.bio) localStorage.setItem('tcc_profileBio', user.bio);
   }
+
+  const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+  if (adminDashboardBtn) {
+    adminDashboardBtn.style.display = user && !asGuest && user.is_staff ? '' : 'none';
+  }
+
+  if (typeof loadBoards === 'function') loadBoards();
 }
 
 function showLogin() {
@@ -43,6 +50,8 @@ function showLogin() {
   guestBanner.classList.remove('visible');
   loginScreen.classList.remove('hidden');
   switchToLogin();
+  const adminDashboardBtn = document.getElementById('adminDashboardBtn');
+  if (adminDashboardBtn) adminDashboardBtn.style.display = 'none';
 }
 
 function switchToSignup() {
@@ -170,10 +179,68 @@ function validateConfirm() {
 
 signupConfirm.addEventListener('input', validateConfirm);
 
-signupForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  if (!validateConfirm()) return;
+const signupBirthdate = document.getElementById('signupBirthdate');
+const birthdateError = document.getElementById('birthdateError');
+const MINIMUM_AGE = 18;
 
+function validateBirthdate() {
+  const value = signupBirthdate.value;
+  if (!value) {
+    birthdateError.textContent = 'Date of birth is required';
+    return false;
+  }
+  const dob = new Date(value + 'T00:00:00');
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const hadBirthdayThisYear =
+    today.getMonth() > dob.getMonth() ||
+    (today.getMonth() === dob.getMonth() && today.getDate() >= dob.getDate());
+  if (!hadBirthdayThisYear) age--;
+
+  if (dob > today) {
+    birthdateError.textContent = 'Date of birth is invalid';
+    return false;
+  }
+  if (age < MINIMUM_AGE) {
+    birthdateError.textContent = `You must be at least ${MINIMUM_AGE} years old to create an account`;
+    return false;
+  }
+  birthdateError.textContent = '';
+  return true;
+}
+
+signupBirthdate.addEventListener('change', validateBirthdate);
+
+const captchaError = document.getElementById('captchaError');
+const turnstileWidget = document.getElementById('signupTurnstile');
+
+function getTurnstileToken() {
+  const input = signupForm.querySelector('[name="cf-turnstile-response"]');
+  return input ? input.value : '';
+}
+
+function resetTurnstile() {
+  if (window.turnstile) window.turnstile.reset(turnstileWidget);
+}
+
+function validateCaptcha() {
+  if (!getTurnstileToken()) {
+    captchaError.textContent = 'Please complete the CAPTCHA';
+    return false;
+  }
+  captchaError.textContent = '';
+  return true;
+}
+
+signupForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (!validateBirthdate()) return;
+  if (!validateConfirm()) return;
+  if (!validateCaptcha()) return;
+  openTermsModal();
+});
+
+async function completeRegistration() {
   const signupError = document.getElementById('signupError');
   const signupBtn = document.getElementById('signupBtn');
   signupError.textContent = '';
@@ -187,45 +254,78 @@ signupForm.addEventListener('submit', async (e) => {
       body: JSON.stringify({
         username: document.getElementById('signupUsername').value.trim().replace(/^@/, ''),
         display_name: document.getElementById('signupName').value.trim(),
+        email: document.getElementById('signupEmail').value.trim(),
+        date_of_birth: document.getElementById('signupBirthdate').value,
         password: document.getElementById('signupPassword').value,
+        agreed_to_terms: true,
+        turnstile_token: getTurnstileToken(),
       }),
     });
     const data = await res.json();
     if (!res.ok) {
       signupError.textContent = data.error || 'Registration failed';
+      resetTurnstile();
       return;
     }
     signupForm.reset();
     clearPasswordStrength();
     confirmError.textContent = '';
+    birthdateError.textContent = '';
+    captchaError.textContent = '';
     switchToLogin();
     enterApp(false, data.user);
   } catch {
     signupError.textContent = 'Cannot reach server — make sure it is running.';
+    resetTurnstile();
   } finally {
     signupBtn.disabled = false;
     signupBtn.textContent = 'Create Account';
   }
+}
+
+// ── Terms and Conditions Modal ─────────────────────────────
+
+const termsModalOverlay = document.getElementById('termsModalOverlay');
+const termsAgreeCheckbox = document.getElementById('termsAgreeCheckbox');
+const termsAcceptBtn = document.getElementById('termsAcceptBtn');
+const termsCancelBtn = document.getElementById('termsCancelBtn');
+const termsModalClose = document.getElementById('termsModalClose');
+
+function openTermsModal() {
+  termsAgreeCheckbox.checked = false;
+  termsAcceptBtn.disabled = true;
+  termsModalOverlay.classList.add('open');
+}
+
+function closeTermsModal() {
+  termsModalOverlay.classList.remove('open');
+}
+
+termsAgreeCheckbox.addEventListener('change', () => {
+  termsAcceptBtn.disabled = !termsAgreeCheckbox.checked;
+});
+
+termsCancelBtn.addEventListener('click', closeTermsModal);
+termsModalClose.addEventListener('click', closeTermsModal);
+termsModalOverlay.addEventListener('click', (e) => {
+  if (e.target === termsModalOverlay) closeTermsModal();
+});
+
+termsAcceptBtn.addEventListener('click', () => {
+  if (!termsAgreeCheckbox.checked) return;
+  closeTermsModal();
+  completeRegistration();
 });
 
 // ── Randomized Quotes ─────────────────────────────────────
+// Quotes are managed by admins (see the admin dashboard) and served from
+// the database rather than hardcoded here.
 
-const quotes = [
-  '"Ill blow you up, and itll be cool!"',
-  '"Natural Selection, fucker should be shot!"',
-  '"My Wrath from Januarys incident will be god-like, not to mention our revenge in the commons!"',
-  '"Youve given us shit for years, youre fucking gonna pay for all the shit! We dont give a shit, cause were gonna die doing it!"',
-  '"Stick to the plan, you drive I cover! Kill the cops!"',
-  '“Imagine a society that subjects people to conditions that make them terribly unhappy then gives them the drugs to take away their unhappiness,"',
-  '"Our society tends to regard as a sickness any mode of thought or behavior that is inconvenient for the system,"',
-  '"The conservatives are fools: They whine about the decay of traditional values, yet they enthusiastically support technological progress,"',
-  '"Inside every cynic is a disappointed idealist,"',
-  '"I incessantly have nothing other than scorn for humanity,"',
-];
+let quotes = [];
 
 function setRandomQuote() {
   const el = document.getElementById('randomQuote');
-  if (!el) return;
+  if (!el || quotes.length === 0) return;
   el.style.opacity = '0';
   setTimeout(() => {
     el.textContent = quotes[Math.floor(Math.random() * quotes.length)];
@@ -233,7 +333,19 @@ function setRandomQuote() {
   }, 400);
 }
 
-setRandomQuote();
+async function loadQuotes() {
+  try {
+    const res = await fetch('/api/quotes/');
+    if (!res.ok) return;
+    const data = await res.json();
+    quotes = data.quotes || [];
+    setRandomQuote();
+  } catch {
+    // no quotes available — header quote just stays blank
+  }
+}
+
+loadQuotes();
 setInterval(setRandomQuote, 12000);
 
 // ── Panel System ──────────────────────────────────────────
@@ -767,16 +879,77 @@ renderDmList();
 
 // ── Board System ─────────────────────────────────────────
 
-const boardData = {
-  'Memes & Shitposts': [],
-  'Conspiracy Theories': [],
-  'Rate My Fit': [],
-  'Unpopular Opinions': [],
-  'Weird Dreams': [],
-  'Music Drops': [],
-  'Cursed Food': [],
-  'Pet Pics': [],
-};
+let boardData = {};
+let boardIds = {};
+let boardColorMap = {};
+let boardOrder = [];
+
+async function loadBoards() {
+  try {
+    const res = await fetch('/api/boards/');
+    if (!res.ok) return;
+    const { boards } = await res.json();
+    boardIds = {};
+    boardColorMap = {};
+    boardOrder = boards.map((b) => b.name);
+    boards.forEach((b) => {
+      boardIds[b.name] = b.id;
+      boardColorMap[b.name] = b.color;
+    });
+    renderBoardSidebar();
+    await Promise.all(boards.map((b) => refreshBoardPosts(b.name)));
+    updateBoardCardCounts();
+    renderHomeFeed();
+    if (boardView.style.display !== 'none' && boardViewTitle.textContent) {
+      renderBoardPosts(boardViewTitle.textContent);
+    }
+  } catch {
+    // server offline — boards stay empty
+  }
+}
+
+function renderBoardSidebar() {
+  const container = document.getElementById('boardCardList');
+  if (!container) return;
+  container.innerHTML = '';
+  boardOrder.forEach((name) => {
+    const color = boardColorMap[name] || '#e74c3c';
+    const count = (boardData[name] || []).length;
+    const card = document.createElement('div');
+    card.className = 'board-card';
+    card.innerHTML = `
+      <div class="board-color" style="background:${color}"></div>
+      <div class="board-info"><h3>${escapeHTML(name)}</h3><p>${count} posts</p></div>
+    `;
+    card.addEventListener('click', () => openBoard(name, color));
+    container.appendChild(card);
+  });
+}
+
+async function refreshBoardPosts(boardName) {
+  const boardId = boardIds[boardName];
+  if (!boardId) return;
+  try {
+    const res = await fetch(`/api/boards/${boardId}/posts/`);
+    if (!res.ok) return;
+    const { posts } = await res.json();
+    boardData[boardName] = posts;
+  } catch {
+    // ignore — keep whatever was cached
+  }
+}
+
+function updateBoardCardCounts() {
+  document.querySelectorAll('.board-card').forEach((card) => {
+    const name = card.querySelector('.board-info h3').textContent;
+    const count = (boardData[name] || []).length;
+    card.querySelector('.board-info p').textContent = count + ' posts';
+  });
+}
+
+function canDeletePost(post) {
+  return !!currentUser && (currentUser.username === post.username || currentUser.is_staff);
+}
 
 const feedView = document.getElementById('feedView');
 const boardView = document.getElementById('boardView');
@@ -784,7 +957,6 @@ const boardViewTitle = document.getElementById('boardViewTitle');
 const boardViewColor = document.getElementById('boardViewColor');
 const boardPosts = document.getElementById('boardPosts');
 
-const colors = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#ec407a'];
 const avatarGradients = [
   'linear-gradient(135deg, #e74c3c, #c0392b)',
   'linear-gradient(135deg, #3498db, #2980b9)',
@@ -810,6 +982,7 @@ function renderBoardPosts(boardName) {
     const replyCount = p.replies.length;
     const post = document.createElement('div');
     post.className = 'post-wrap';
+    post.dataset.postId = p.id;
     post.innerHTML = `
       <div class="post">
         <div class="post-avatar" style="background:${grad}">${initial}</div>
@@ -820,7 +993,7 @@ function renderBoardPosts(boardName) {
           </div>
           <p>${escapeHTML(p.text)}</p>
           <div class="post-actions">
-            <button class="action-btn like-btn">
+            <button class="action-btn like-btn${p.liked ? ' liked' : ''}" data-post-id="${p.id}" style="${p.liked ? 'color:#e74c3c' : ''}">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
               <span class="like-count">${p.likes}</span>
             </button>
@@ -828,6 +1001,10 @@ function renderBoardPosts(boardName) {
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span class="reply-count">${replyCount}</span>
             </button>
+            ${canDeletePost(p) ? `
+            <button class="action-btn delete-post-btn" data-post-id="${p.id}" title="Delete post">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>` : ''}
           </div>
         </div>
       </div>
@@ -864,12 +1041,17 @@ function renderBoardPosts(boardName) {
   });
 }
 
-function openBoard(boardName, color) {
+async function openBoard(boardName, color) {
   feedView.style.display = 'none';
   boardView.style.display = '';
   boardViewTitle.textContent = boardName;
   boardViewColor.style.background = color;
   renderBoardPosts(boardName);
+  await refreshBoardPosts(boardName);
+  if (boardViewTitle.textContent === boardName) {
+    renderBoardPosts(boardName);
+    updateBoardCardCounts();
+  }
 }
 
 function closeBoard() {
@@ -895,15 +1077,28 @@ document.addEventListener('click', (e) => {
 });
 
 // send reply
-function sendReply(boardName, idx, inputEl) {
-  if (isGuest) return;
+async function sendReply(boardName, idx, inputEl) {
+  if (isGuest || !currentUser) return;
   const text = inputEl.value.trim();
   if (!text) return;
-  const username = getChatUsername();
   const posts = boardData[boardName];
   if (!posts || !posts[idx]) return;
+
+  let res;
+  try {
+    res = await fetch(`/api/posts/${posts[idx].id}/replies/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch {
+    return;
+  }
+  if (!res.ok) return;
+  const { reply } = await res.json();
+
   if (!posts[idx].replies) posts[idx].replies = [];
-  posts[idx].replies.push({ user: username, time: 'just now', text });
+  posts[idx].replies.push(reply);
   inputEl.value = '';
   renderBoardPosts(boardName);
   // reopen the replies section for this post
@@ -937,49 +1132,92 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-document.querySelectorAll('.board-card').forEach((card, i) => {
-  card.addEventListener('click', () => {
-    const name = card.querySelector('.board-info h3').textContent;
-    const color = colors[i] || '#e74c3c';
-    openBoard(name, color);
-  });
-});
 
 // board composer
-document.getElementById('boardPostBtn').addEventListener('click', () => {
-  if (isGuest) return;
+document.getElementById('boardPostBtn').addEventListener('click', async () => {
+  if (isGuest || !currentUser) return;
   const input = document.getElementById('boardComposerInput');
   const text = input.value.trim();
   if (!text) return;
   const boardName = boardViewTitle.textContent;
-  const username = localStorage.getItem('tcc_profileUsername') || 'You';
+  const boardId = boardIds[boardName];
+  if (!boardId) return;
+
+  let res;
+  try {
+    res = await fetch(`/api/boards/${boardId}/posts/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text }),
+    });
+  } catch {
+    return;
+  }
+  if (!res.ok) return;
+  const { post } = await res.json();
+
   boardData[boardName] = boardData[boardName] || [];
-  boardData[boardName].unshift({ user: username.replace(/^@/, ''), time: 'just now', text, likes: 0, comments: 0 });
+  boardData[boardName].unshift(post);
   renderBoardPosts(boardName);
   input.value = '';
-  // update post count in sidebar
-  document.querySelectorAll('.board-card').forEach((card) => {
-    if (card.querySelector('.board-info h3').textContent === boardName) {
-      card.querySelector('.board-info p').textContent = boardData[boardName].length + ' posts';
-    }
-  });
+  updateBoardCardCounts();
   renderHomeFeed();
 });
 
 // like button toggling
-document.addEventListener('click', (e) => {
+document.addEventListener('click', async (e) => {
   const btn = e.target.closest('.like-btn');
-  if (!btn) return;
-  const countEl = btn.querySelector('.like-count');
-  if (!countEl) return;
-  let count = parseInt(countEl.textContent, 10);
-  if (btn.classList.toggle('liked')) {
-    countEl.textContent = count + 1;
-    btn.style.color = '#e74c3c';
-  } else {
-    countEl.textContent = count - 1;
-    btn.style.color = '';
+  if (!btn || isGuest || !currentUser) return;
+  const postId = btn.dataset.postId;
+  if (!postId) return;
+
+  let res;
+  try {
+    res = await fetch(`/api/posts/${postId}/like/`, { method: 'POST' });
+  } catch {
+    return;
   }
+  if (!res.ok) return;
+  const { liked, likes } = await res.json();
+
+  const countEl = btn.querySelector('.like-count');
+  if (countEl) countEl.textContent = likes;
+  btn.classList.toggle('liked', liked);
+  btn.style.color = liked ? '#e74c3c' : '';
+
+  const boardName = boardViewTitle.textContent;
+  const posts = boardData[boardName] || [];
+  const post = posts.find((p) => String(p.id) === String(postId));
+  if (post) {
+    post.liked = liked;
+    post.likes = likes;
+  }
+});
+
+// delete post — only the owning user or an admin ever sees this button,
+// and the server independently enforces the same rule
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('.delete-post-btn');
+  if (!btn || !currentUser) return;
+  const postId = btn.dataset.postId;
+  if (!postId) return;
+  if (!confirm('Delete this post?')) return;
+
+  let res;
+  try {
+    res = await fetch(`/api/posts/${postId}/`, { method: 'DELETE' });
+  } catch {
+    return;
+  }
+  if (!res.ok) return;
+
+  const boardName = boardViewTitle.textContent;
+  if (boardData[boardName]) {
+    boardData[boardName] = boardData[boardName].filter((p) => String(p.id) !== String(postId));
+  }
+  renderBoardPosts(boardName);
+  updateBoardCardCounts();
+  renderHomeFeed();
 });
 
 // ── Profile Page ──────────────────────────────────────────
@@ -1219,11 +1457,17 @@ document.addEventListener('keydown', (e) => {
 });
 
 // ── Reels ─────────────────────────────────────────────────
+// Reels is coming as a later feature. Its markup is commented out in
+// index.html, so the DOM-dependent code below is disabled to match —
+// uncomment both together when the feature is rebuilt.
 
+// Referenced by the profile page's reels tab even while the feature is
+// disabled, so it stays live rather than commented out with the rest.
+const reelsData = [];
+
+/*
 const reelsPage = document.getElementById('reelsPage');
 const reelsContainer = document.getElementById('reelsContainer');
-
-const reelsData = [];
 
 let currentReel = 0;
 let reelTimer = null;
@@ -1556,26 +1800,21 @@ document.getElementById('reelUploadSubmit').addEventListener('click', () => {
   buildReels();
   resetReelTimer();
 });
+*/
 
 // ── Home Feed ─────────────────────────────────────────────
-
-const boardNames = [
-  'Memes & Shitposts', 'Conspiracy Theories', 'Rate My Fit', 'Unpopular Opinions',
-  'Weird Dreams', 'Music Drops', 'Cursed Food', 'Pet Pics',
-];
-const boardColors = ['#e74c3c','#3498db','#2ecc71','#f39c12','#9b59b6','#1abc9c','#e67e22','#ec407a'];
 
 function renderHomeFeed() {
   const container = document.getElementById('homeFeed');
   if (!container) return;
   container.innerHTML = '';
 
-  boardNames.forEach((name, i) => {
+  boardOrder.forEach((name) => {
     const posts = boardData[name];
     if (!posts || posts.length === 0) return;
 
     const recent = posts.slice(0, 3);
-    const color = boardColors[i] || '#e74c3c';
+    const color = boardColorMap[name] || '#e74c3c';
 
     const section = document.createElement('div');
     section.className = 'home-section';
@@ -1628,8 +1867,7 @@ function renderHomeFeed() {
         return;
       }
       const boardName = post.dataset.board;
-      const idx = boardNames.indexOf(boardName);
-      openBoard(boardName, boardColors[idx] || '#e74c3c');
+      openBoard(boardName, boardColorMap[boardName] || '#e74c3c');
     });
   });
 }
